@@ -1,0 +1,20 @@
+name: Windows VST3 Build
+on:
+  push:
+    branches: [ main, "dev/**" ]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -A x64 -DCMAKE_BUILD_TYPE=Release
+      - name: Build VST3
+        run: cmake --build build --config Release --target WaveBombzPUNCH_VST3 --parallel
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WaveBombz-PUNCH-Windows-x64-VST3
+          path: build/WaveBombzPUNCH_artefacts/Release/VST3/
+          if-no-files-found: error
