@@ -34,8 +34,8 @@ bool WaveBombzPUNCHAudioProcessor::isBusesLayoutSupported(const BusesLayout& l) 
 }
 void WaveBombzPUNCHAudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&) {
  juce::ScopedNoDenormals guard; const int chs=b.getNumChannels(), nS=b.getNumSamples(); if(chs==0||nS==0)return;
- if(dryBuffer.getNumSamples()<nS) { for(int c=0;c<chs;++c) juce::FloatVectorOperations::copy(dryBuffer.getWritePointer(c),b.getReadPointer(c),dryBuffer.getNumSamples()); }
- else dryBuffer.makeCopyOf(b,true);
+ if(nS>dryBuffer.getNumSamples()) return; // Never resize scratch memory on the audio thread.
+ for(int c=0;c<chs;++c) dryBuffer.copyFrom(c,0,b,c,0,nS);
  inputGain.setTargetValue(dbToGain(parameters.getRawParameterValue("input")->load()));
  outputGain.setTargetValue(dbToGain(parameters.getRawParameterValue("output")->load()));
  const float attack=parameters.getRawParameterValue("attack")->load()*0.01f;
