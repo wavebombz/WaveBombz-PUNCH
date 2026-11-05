@@ -59,6 +59,9 @@ void WaveBombzPUNCHAudioProcessor::prepareToPlay (double sr, int maxBlock)
     }
 
     fastEnvelope = slowEnvelope = 0.0f;
+    lastProcessingMode = -1;
+    activeLatencySamples = 0;
+    setLatencySamples (0);
     inputPeak.store (0.0f);
     outputPeak.store (0.0f);
     inputRms.store (0.0f);
@@ -95,6 +98,25 @@ void WaveBombzPUNCHAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
     const bool clip = parameters.getRawParameterValue ("softClip")->load() > 0.5f;
     const int oversamplingMode = juce::jlimit (0, 3, static_cast<int> (parameters.getRawParameterValue ("oversampling")->load() + 0.5f));
+    const int processingMode = clip ? oversamplingMode : 0;
+    if (processingMode != lastProcessingMode)
+    {
+        for (auto& oversampler : oversamplers)
+            if (oversampler != nullptr)
+                oversampler->reset();
+        lastProcessingMode = processingMode;
+    }
+
+    int requestedLatency = 0;
+    if (processingMode > 0)
+        if (auto* selectedOversampler = oversamplers[static_cast<size_t> (processingMode - 1)].get())
+            requestedLatency = juce::roundToInt (selectedOversampler->getLatencyInSamples());
+
+    if (requestedLatency != activeLatencySamples)
+    {
+        activeLatencySamples = requestedLatency;
+        setLatencySamples (activeLatencySamples);
+    }
     const float fastCoefficient = std::exp (-1.0f / static_cast<float> (currentSampleRate * 0.003));
     const float slowCoefficient = std::exp (-1.0f / static_cast<float> (currentSampleRate * 0.080));
 
@@ -182,6 +204,13 @@ void WaveBombzPUNCHAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     outputPeak.store (peakOut);
     inputRms.store (static_cast<float> (std::sqrt (sumSquaresIn / sampleCount)));
     outputRms.store (static_cast<float> (std::sqrt (sumSquaresOut / sampleCount)));
+}
+
+void WaveBombzPUNCHAudioProcessor::processBlockBypassed (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
+{
+    // Host bypass is intentionally transparent: do not run shaping, clipping or gain.
+    // The latency reported by processBlock remains active so the host can keep tracks aligned.
+    juce::ignoreUnused (buffer);
 }
 
 juce::AudioProcessorEditor* WaveBombzPUNCHAudioProcessor::createEditor()
