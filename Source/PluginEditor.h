@@ -8,7 +8,7 @@ private:
  void timerCallback()override;void setup(juce::Slider&,juce::Label&,const juce::String&);
  WaveBombzPUNCHAudioProcessor& processor;juce::Label title,subtitle,meter;
  juce::Slider attack,sustain,punch,mix,input,output;juce::Label labels[6];
- juce::ToggleButton clip{"SOFT CLIP"};juce::ComboBox os;
+ juce::ToggleButton clip{"SOFT CLIP"};juce::ComboBox os,preset;
  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachments[6];
  std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> clipAttachment;
  std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> osAttachment;
