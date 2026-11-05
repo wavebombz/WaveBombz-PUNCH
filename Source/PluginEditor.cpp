@@ -6,6 +6,18 @@ WaveBombzPUNCHAudioProcessorEditor::WaveBombzPUNCHAudioProcessorEditor(WaveBombz
  for(int i=0;i<6;++i){setup(*s[i],labels[i],names[i]);attachments[i]=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(p.parameters,ids[i],*s[i]);}
  clip.setColour(juce::ToggleButton::textColourId,juce::Colour(0xffdedfe2));addAndMakeVisible(clip);clipAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.parameters,"softClip",clip);
  os.addItem("OFF",1);os.addItem("2X",2);os.addItem("4X",3);os.addItem("8X",4);addAndMakeVisible(os);osAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.parameters,"oversampling",os);
+ preset.addItem("KICK - TIGHT & PUNCHY",1);preset.addItem("TECH HOUSE DRUM BUS",2);preset.addItem("SNARE - SHARP ATTACK",3);preset.addItem("BASS - CONTROLLED",4);
+ preset.addItem("PERCUSSION - SNAP",5);preset.addItem("SYNTH - SOFT TRANSIENT",6);preset.addItem("DRUM BUS - AGGRESSIVE",7);preset.addItem("INIT - NEUTRAL",8);
+ preset.setSelectedId(8,juce::dontSendNotification);preset.onChange=[this]{
+  struct Preset{float a,s,p,m,in,out;bool clip;int os;};
+  static constexpr Preset bank[]={{65,10,55,100,0,-1,true,2},{45,20,38,100,0,-1,true,2},{85,-5,45,100,0,-1,true,1},{15,-25,18,100,-1,0,true,1},{72,5,60,100,0,-1,true,2},{-25,25,12,85,0,0,false,0},{90,35,90,100,2,-3,true,3},{0,0,0,100,0,0,false,0}};
+  const auto id=preset.getSelectedId();if(id<1||id>8)return;const auto& v=bank[id-1];
+  auto set=[this](const char* key,float value){if(auto* param=processor.parameters.getParameter(key))param->setValueNotifyingHost(param->convertTo0to1(value));};
+  set("attack",v.a);set("sustain",v.s);set("punch",v.p);set("mix",v.m);set("input",v.in);set("output",v.out);
+  if(auto* param=processor.parameters.getParameter("softClip"))param->setValueNotifyingHost(v.clip?1.0f:0.0f);
+  if(auto* param=processor.parameters.getParameter("oversampling"))param->setValueNotifyingHost(param->convertTo0to1(static_cast<float>(v.os)));
+ };
+ addAndMakeVisible(preset);
  meter.setColour(juce::Label::textColourId,juce::Colour(0xffb8bac0));addAndMakeVisible(meter);
  setResizable(true,true);setResizeLimits(540,360,1100,720);setSize(720,470);startTimerHz(30);
 }
@@ -25,6 +37,6 @@ void WaveBombzPUNCHAudioProcessorEditor::resized(){
  auto a=getLocalBounds().reduced(28);title.setBounds(a.removeFromTop(32));subtitle.setBounds(a.removeFromTop(22));a.removeFromTop(24);
  auto row=a.removeFromTop(a.getHeight()-82);const int cell=row.getWidth()/6;juce::Slider* s[]={&attack,&sustain,&punch,&mix,&input,&output};
  for(int i=0;i<6;++i){auto slot=row.removeFromLeft(i==5?row.getWidth():cell);labels[i].setBounds(slot.removeFromTop(22));s[i]->setBounds(slot.reduced(2,0));}
- auto foot=a.removeFromBottom(54);clip.setBounds(foot.removeFromLeft(130).withHeight(28));os.setBounds(foot.removeFromLeft(110).withHeight(28));meter.setBounds(foot.withHeight(28));
+ auto foot=a.removeFromBottom(54);preset.setBounds(foot.removeFromLeft(205).withHeight(28));clip.setBounds(foot.removeFromLeft(112).withHeight(28));os.setBounds(foot.removeFromLeft(85).withHeight(28));meter.setBounds(foot.withHeight(28));
 }
 void WaveBombzPUNCHAudioProcessorEditor::timerCallback(){inLevel=juce::jlimit(0.0f,1.0f,processor.getInputPeak());outLevel=juce::jlimit(0.0f,1.0f,processor.getOutputPeak());meter.setText("IN "+juce::String(juce::Decibels::gainToDecibels(inLevel),1)+" dB   OUT "+juce::String(juce::Decibels::gainToDecibels(outLevel),1)+" dB",juce::dontSendNotification);repaint();}
