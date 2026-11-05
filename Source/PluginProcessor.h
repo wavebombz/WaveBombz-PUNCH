@@ -8,6 +8,7 @@ public:
  void prepareToPlay(double, int) override; void releaseResources() override;
  bool isBusesLayoutSupported(const BusesLayout&) const override;
  void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+ void processBlockBypassed(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
  juce::AudioProcessorEditor* createEditor() override; bool hasEditor() const override { return true; }
  const juce::String getName() const override { return JucePlugin_Name; }
  bool acceptsMidi() const override { return false; } bool producesMidi() const override { return false; }
@@ -27,6 +28,7 @@ private:
  std::array<std::unique_ptr<juce::dsp::Oversampling<float>>, 3> oversamplers;
  juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> inputGain, outputGain, attackAmount, sustainAmount, punchAmount, wetMix;
  float fastEnvelope = 0.0f, slowEnvelope = 0.0f; double currentSampleRate = 44100.0;
+ int lastProcessingMode = -1, activeLatencySamples = 0;
  std::atomic<float> inputPeak { 0.0f }, outputPeak { 0.0f }, inputRms { 0.0f }, outputRms { 0.0f };
  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(WaveBombzPUNCHAudioProcessor)
 };
